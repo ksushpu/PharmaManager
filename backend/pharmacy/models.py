@@ -20,6 +20,7 @@ class Product(models.Model):
     pharmacy = models.ForeignKey(Pharmacy, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255, verbose_name="Название товара")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
+    dosages = models.JSONField(default=list, verbose_name="Фасовки (дозировки)")
     quantity = models.IntegerField(default=0, verbose_name="Количество")
     expiry_date = models.DateField(verbose_name="Срок годности")
     created_at = models.DateTimeField(auto_now_add=True)
