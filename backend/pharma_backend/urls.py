@@ -20,6 +20,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from pharmacy.views import PharmacyViewSet, ProductViewSet
 from suppliers.views import SupplierViewSet, SupplierProductViewSet, SupplierPreferenceViewSet
+from orders.views import OrderViewSet
 
 router = DefaultRouter()
 router.register(r'pharmacies', PharmacyViewSet)
@@ -27,6 +28,7 @@ router.register(r'products', ProductViewSet, basename='product')
 router.register(r'suppliers', SupplierViewSet)
 router.register(r'supplier-products', SupplierProductViewSet, basename='supplier-product')
 router.register(r'preferences', SupplierPreferenceViewSet)
+router.register(r'orders', OrderViewSet, basename='order')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
