@@ -1,15 +1,34 @@
+import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
 import { isBefore, parseISO } from "date-fns";
 import { Search, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export function Inventory() {
   const { products, currentDate } = usePharmacy();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-800">Инвентарь</h2>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-slate-100">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Поиск по названию..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-sm"
+            />
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
@@ -22,7 +41,7 @@ export function Inventory() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {products.map((product) => {
+              {filtered.map((product) => {
                 const isExpired = isBefore(parseISO(product.expirationDate), parseISO(currentDate)) && product.quantity > 0;
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 ${isExpired ? 'bg-red-50/30' : ''}`}>
@@ -56,6 +75,11 @@ export function Inventory() {
                   </tr>
                 );
               })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">Ничего не найдено</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
