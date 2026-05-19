@@ -1,15 +1,8 @@
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router";
 import { Layout } from "./components/layout/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
-import { PharmacyProvider, usePharmacy } from "./context/PharmacyContext";
-
-function RootRoute() {
-  const { currentUser } = usePharmacy();
-  if (currentUser?.role === "director") return <Dashboard />;
-  if (currentUser?.role === "supplier") return <div>Supplier (coming soon)</div>;
-  return <Navigate to="/login" replace />;
-}
+import { PharmacyProvider } from "./context/PharmacyContext";
 
 const router = createBrowserRouter([
   {
@@ -20,7 +13,7 @@ const router = createBrowserRouter([
     path: "/",
     element: <PharmacyProvider><Layout /></PharmacyProvider>,
     children: [
-      { index: true, element: <RootRoute /> },
+      { index: true, element: <Dashboard /> },
     ],
   },
 ]);

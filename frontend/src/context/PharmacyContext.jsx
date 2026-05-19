@@ -44,7 +44,7 @@ const PharmacyContext = createContext(undefined);
 export function PharmacyProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [name] = useState("Аптека Здоровье");
-  const [currentDate, setCurrentDate] = useState("2026-04-28");
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [products, setProducts] = useState(initialProducts);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [preferences] = useState(initialPreferences);
