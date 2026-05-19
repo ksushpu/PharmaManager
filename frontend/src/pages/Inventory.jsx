@@ -6,6 +6,7 @@ import { Search, AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react"
 export function Inventory() {
   const { products, currentDate, writeOffExpired, removeProduct, addProduct } = usePharmacy();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -14,6 +15,20 @@ export function Inventory() {
   const expiredCount = products.filter(p =>
     p.quantity > 0 && isBefore(parseISO(p.expirationDate), parseISO(currentDate))
   ).length;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    addProduct({
+      id: Date.now().toString(),
+      name: formData.get("name"),
+      price: Number(formData.get("price")),
+      dosages: formData.get("dosages").split(",").map(s => s.trim()),
+      quantity: Number(formData.get("quantity")),
+      expirationDate: formData.get("expirationDate"),
+    });
+    setIsAddModalOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -26,7 +41,7 @@ export function Inventory() {
               Списать просрочку ({expiredCount})
             </button>
           )}
-          <button className="flex items-center bg-sky-500 text-white hover:bg-sky-600 px-4 py-2 rounded-lg font-medium text-sm shadow-sm">
+          <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-sky-500 text-white hover:bg-sky-600 px-4 py-2 rounded-lg font-medium text-sm shadow-sm">
             <Plus className="w-4 h-4 mr-2" />
             Добавить товар
           </button>
@@ -108,6 +123,48 @@ export function Inventory() {
           </table>
         </div>
       </div>
+
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800">Новый товар</h3>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Название</label>
+                <input required name="name" type="text" className="w-full rounded-md border p-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Фасовки (через запятую)</label>
+                <input required name="dosages" type="text" placeholder="5 мг, 10 мг" className="w-full rounded-md border p-2" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Цена (₽)</label>
+                  <input required name="price" type="number" min="0" className="w-full rounded-md border p-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Количество</label>
+                  <input required name="quantity" type="number" min="0" className="w-full rounded-md border p-2" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Срок годности</label>
+                <input required name="expirationDate" type="date" className="w-full rounded-md border p-2" />
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border rounded-lg hover:bg-slate-50">
+                  Отмена
+                </button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-sky-500 rounded-lg hover:bg-sky-600 shadow-sm">
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
