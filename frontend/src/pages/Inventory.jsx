@@ -1,19 +1,37 @@
 import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
 import { isBefore, parseISO } from "date-fns";
-import { Search, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 export function Inventory() {
-  const { products, currentDate } = usePharmacy();
+  const { products, currentDate, writeOffExpired, removeProduct, addProduct } = usePharmacy();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const expiredCount = products.filter(p =>
+    p.quantity > 0 && isBefore(parseISO(p.expirationDate), parseISO(currentDate))
+  ).length;
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Инвентарь</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold text-slate-800">Инвентарь</h2>
+        <div className="flex items-center gap-3">
+          {expiredCount > 0 && (
+            <button onClick={writeOffExpired} className="flex items-center bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg font-medium text-sm">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Списать просрочку ({expiredCount})
+            </button>
+          )}
+          <button className="flex items-center bg-sky-500 text-white hover:bg-sky-600 px-4 py-2 rounded-lg font-medium text-sm shadow-sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить товар
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100">
@@ -38,6 +56,7 @@ export function Inventory() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Цена</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Количество</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Срок годности</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Действия</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
@@ -72,12 +91,17 @@ export function Inventory() {
                         <span className={isExpired ? "text-red-600 font-medium" : "text-slate-600"}>{product.expirationDate}</span>
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button onClick={() => removeProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors" title="Удалить">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">Ничего не найдено</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">Ничего не найдено</td>
                 </tr>
               )}
             </tbody>
