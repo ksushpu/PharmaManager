@@ -42,7 +42,10 @@ const initialOrders = [
 const PharmacyContext = createContext(undefined);
 
 export function PharmacyProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("pharmaUser");
+    return saved ? JSON.parse(saved) : null;
+  });
   const [name] = useState("Аптека Здоровье");
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [products, setProducts] = useState(initialProducts);
@@ -50,8 +53,15 @@ export function PharmacyProvider({ children }) {
   const [preferences] = useState(initialPreferences);
   const [orders, setOrders] = useState(initialOrders);
 
-  const login = (user) => setCurrentUser(user);
-  const logout = () => setCurrentUser(null);
+  const login = (user) => {
+    setCurrentUser(user);
+    localStorage.setItem("pharmaUser", JSON.stringify(user));
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem("pharmaUser");
+  };
 
   const writeOffExpired = () => {
     setProducts(prev => prev.map(p =>

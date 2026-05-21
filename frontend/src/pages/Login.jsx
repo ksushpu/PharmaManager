@@ -10,15 +10,15 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (activeTab === "director") {
-      login({ id: "d1", role: "director", name: "Директор аптеки" });
-    } else {
-      login({ id: "s1", role: "supplier", name: "ФармКомплект" });
-    }
-    navigate("/");
-  };
+const handleLogin = (e) => {
+  e.preventDefault();
+  if (activeTab === "director") {
+    login({ id: "d1", role: "director", name: "Директор аптеки" });
+  } else {
+    login({ id: "s1", role: "supplier", name: "ФармКомплект" });
+  }
+  navigate("/");
+};
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
