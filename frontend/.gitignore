@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+echo "" >> .gitignore
+echo "# React build" >> .gitignore
+echo "frontend/dist/" >> .gitignore
