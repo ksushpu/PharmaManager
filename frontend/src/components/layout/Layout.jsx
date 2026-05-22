@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { usePharmacy } from "@/context/PharmacyContext";
 import { LayoutDashboard, Package, ShoppingCart, Truck, Calendar, Stethoscope, LogOut, ClipboardList, Boxes } from "lucide-react";
+
 export function Layout() {
   const { name, currentDate, setCurrentDate, currentUser, logout } = usePharmacy();
   const navigate = useNavigate();
@@ -55,8 +56,22 @@ export function Layout() {
               <Calendar className="w-4 h-4 mr-2 text-sky-600" />
               Текущая дата
             </div>
-            <input type="date" value={currentDate} onChange={(e) => setCurrentDate(e.target.value)}
-              className="w-full text-sm border-slate-200 rounded-md" />
+            {currentUser?.role === "director" ? (
+              <input
+                type="date"
+                value={currentDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setCurrentDate(e.target.value)}
+                className="w-full text-sm border-slate-200 rounded-md"
+              />
+            ) : (
+              <input
+                type="date"
+                value={currentDate}
+                disabled
+                className="w-full text-sm border-slate-200 rounded-md bg-slate-50 text-slate-500"
+              />
+            )}
           </div>
         </div>
         {currentUser && (
