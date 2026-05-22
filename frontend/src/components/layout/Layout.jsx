@@ -1,9 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { usePharmacy } from "@/context/PharmacyContext";
-import { LayoutDashboard, Package, ShoppingCart, Truck, Calendar, Stethoscope, LogOut, ClipboardList, Boxes, User } from "lucide-react";
-
-export function Layout() {
-  const { name, currentDate, setCurrentDate, currentUser, logout } = usePharmacy();
+import { LayoutDashboard, Package, ShoppingCart, Truck, Calendar, Stethoscope, LogOut, ClipboardList, Boxes } from "lucide-react";
   const navigate = useNavigate();
 
   const directorNavItems = [
