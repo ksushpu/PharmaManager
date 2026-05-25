@@ -7,6 +7,7 @@ import { DirectorOrders } from "./pages/DirectorOrders";
 import { Suppliers } from "./pages/Suppliers";
 import { GuestHome } from "./pages/GuestHome";
 import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 import { SupplierAssortment } from "./pages/SupplierAssortment";
 import { SupplierOrders } from "./pages/SupplierOrders";
 import { usePharmacy } from "./context/PharmacyContext";
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
   },
   {
     path: "/",

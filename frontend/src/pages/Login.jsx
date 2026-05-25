@@ -98,6 +98,16 @@ export function Login() {
           <div className="mt-6 text-center text-sm text-slate-500">
             {activeTab === "director" ? "director / director123" : "supplier1, supplier2, supplier3 / supplier123"}
           </div>
+          {activeTab === "supplier" && (
+            <div className="mt-4">
+              <button
+                onClick={() => navigate("/register")}
+                className="w-full flex justify-center items-center py-2.5 px-4 bg-purple-600 text-white rounded-lg shadow-sm text-sm font-medium hover:bg-purple-700 transition-colors"
+              >
+                Регистрация нового поставщика
+              </button>
+            </div>
+          )}
         </div>
         <div className="mt-8 text-center">
           <button onClick={() => navigate("/")} className="text-sm font-medium text-slate-500 hover:text-slate-800">
