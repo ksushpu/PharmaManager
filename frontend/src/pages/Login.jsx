@@ -1,24 +1,36 @@
 import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
-import { Stethoscope, Truck, Mail, Lock, LogIn } from "lucide-react";
+import { api } from "@/lib/api";
+import { Stethoscope, Truck, User, Lock, LogIn } from "lucide-react";
 import { useNavigate } from "react-router";
 
 export function Login() {
-  const { login } = usePharmacy();
+  const { login, suppliers } = usePharmacy();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("director");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-const handleLogin = (e) => {
-  e.preventDefault();
-  if (activeTab === "director") {
-    login({ id: "d1", role: "director", name: "Директор аптеки" });
-  } else {
-    login({ id: "s1", role: "supplier", name: "ФармКомплект" });
-  }
-  navigate("/");
-};
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const username = activeTab === "director" ? "director" : email.split("@")[0] || "supplier1";
+      const pass = activeTab === "director" ? "director123" : "supplier123";
+      
+      await api.login(username, pass);
+      
+      if (activeTab === "director") {
+        login({ id: "d1", role: "director", name: "Директор аптеки" });
+      } else {
+        const supplierId = username.replace("supplier", "");
+        const supplier = suppliers.find(s => s.id === `s${supplierId}`);
+        login({ id: `s${supplierId}`, role: "supplier", name: supplier?.name || username });
+      }
+      navigate("/");
+    } catch (err) {
+      alert("Ошибка входа: " + err.message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -51,14 +63,14 @@ const handleLogin = (e) => {
           </div>
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Email или логин</label>
+              <label className="block text-sm font-medium text-slate-700">Логин</label>
               <div className="mt-1 relative rounded-md shadow-sm">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
-                  type="email" required value={email}
+                  type="text" required value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-                  placeholder={activeTab === "director" ? "director@pharmacy.ru" : "sales@supplier.ru"}
+                  placeholder={activeTab === "director" ? "director" : "supplier1"}
                 />
               </div>
             </div>
@@ -83,7 +95,9 @@ const handleLogin = (e) => {
               <LogIn className="w-4 h-4 mr-2" />Войти
             </button>
           </form>
-          <div className="mt-6 text-center text-sm text-slate-500">Демо-режим: любые данные для входа.</div>
+          <div className="mt-6 text-center text-sm text-slate-500">
+            {activeTab === "director" ? "director / director123" : "supplier1, supplier2, supplier3 / supplier123"}
+          </div>
         </div>
         <div className="mt-8 text-center">
           <button onClick={() => navigate("/")} className="text-sm font-medium text-slate-500 hover:text-slate-800">
