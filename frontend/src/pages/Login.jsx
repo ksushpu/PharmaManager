@@ -1,34 +1,37 @@
 import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
 import { api } from "@/lib/api";
-import { Stethoscope, Truck, User, Lock, LogIn } from "lucide-react";
+import { Stethoscope, Truck, User, Lock, LogIn, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router";
 
 export function Login() {
-  const { login, suppliers } = usePharmacy();
+  const { login } = usePharmacy();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("director");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    localStorage.removeItem("pharmaUser");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     try {
-      const username = activeTab === "director" ? "director" : email.split("@")[0] || "supplier1";
-      const pass = activeTab === "director" ? "director123" : "supplier123";
-      
-      await api.login(username, pass);
+      await api.login(email, password);
       
       if (activeTab === "director") {
         login({ id: "d1", role: "director", name: "Директор аптеки" });
       } else {
-        const supplierId = username.replace("supplier", "");
-        const supplier = suppliers.find(s => s.id === `s${supplierId}`);
-        login({ id: `s${supplierId}`, role: "supplier", name: supplier?.name || username });
+        const profile = await api.getProfile();
+        const realSupplierId = profile.supplier;
+        const savedName = localStorage.getItem(`supplier_${email}_name`);
+        login({ id: `s${realSupplierId}`, role: "supplier", name: savedName || `Поставщик ${realSupplierId}` });
       }
       navigate("/");
     } catch (err) {
-      alert("Ошибка входа: " + err.message);
+      setError(err.message || "Неверный логин или пароль");
     }
   };
 
@@ -45,7 +48,7 @@ export function Login() {
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/40 sm:rounded-2xl sm:px-10 border border-slate-100">
           <div className="flex p-1 space-x-1 bg-slate-100 rounded-xl mb-8">
             <button
-              onClick={() => setActiveTab("director")}
+              onClick={() => { setActiveTab("director"); setError(""); }}
               className={`flex-1 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all ${
                 activeTab === "director" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}
@@ -53,7 +56,7 @@ export function Login() {
               <Stethoscope className="w-4 h-4 mr-2" />Директор аптеки
             </button>
             <button
-              onClick={() => setActiveTab("supplier")}
+              onClick={() => { setActiveTab("supplier"); setError(""); }}
               className={`flex-1 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all ${
                 activeTab === "supplier" ? "bg-white text-purple-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}
@@ -61,6 +64,12 @@ export function Login() {
               <Truck className="w-4 h-4 mr-2" />Поставщик
             </button>
           </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-sm text-red-700 mb-4">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
               <label className="block text-sm font-medium text-slate-700">Логин</label>
@@ -96,7 +105,7 @@ export function Login() {
             </button>
           </form>
           <div className="mt-6 text-center text-sm text-slate-500">
-            {activeTab === "director" ? "director / director123" : "supplier1, supplier2, supplier3 / supplier123"}
+            {activeTab === "director" ? "Директор: director / director123" : "Поставщики: supplier1, supplier2, supplier3 / supplier123"}
           </div>
           {activeTab === "supplier" && (
             <div className="mt-4">

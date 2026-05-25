@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { api } from "@/lib/api";
-import { Stethoscope, User, Lock, Phone, Building2, ArrowLeft, UserPlus } from "lucide-react";
+import { Stethoscope, User, Lock, Phone, Building2, ArrowLeft, UserPlus, AlertCircle } from "lucide-react";
 
 export function Register() {
   const navigate = useNavigate();
@@ -13,11 +13,13 @@ export function Register() {
     phone: "",
     company: "",
   });
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     if (form.password !== form.password2) {
-      alert("Пароли не совпадают");
+      setError("Пароли не совпадают");
       return;
     }
     try {
@@ -28,11 +30,13 @@ export function Register() {
         email: form.email,
         role: "supplier",
         phone: form.phone,
+        company: form.company,
       });
+      localStorage.setItem(`supplier_${form.username}_name`, form.company);
       alert("Регистрация успешна! Теперь войдите.");
       navigate("/login");
     } catch (err) {
-      alert("Ошибка регистрации: " + err.message);
+      setError(err.message || "Ошибка регистрации");
     }
   };
 
@@ -48,13 +52,23 @@ export function Register() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/40 sm:rounded-2xl sm:px-10 border border-slate-100">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-sm text-red-700 mb-4">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium text-slate-700">Логин</label>
               <div className="mt-1 relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input required type="text" value={form.username}
-                  onChange={(e) => setForm({...form, username: e.target.value})}
+                  pattern="[a-zA-Z0-9]+" title="Только английские буквы и цифры"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+                    setForm({...form, username: val});
+                  }}
                   className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   placeholder="supplier4" />
               </div>
@@ -84,9 +98,13 @@ export function Register() {
               <div className="mt-1 relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input required type="tel" value={form.phone}
-                  onChange={(e) => setForm({...form, phone: e.target.value})}
+                  pattern="[0-9+]+" title="Только цифры и знак +"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9+]/g, "");
+                    setForm({...form, phone: val});
+                  }}
                   className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
-                  placeholder="+7 (900) 123-45-67" />
+                  placeholder="+79001234567" />
               </div>
             </div>
             <div>
@@ -98,6 +116,7 @@ export function Register() {
                   className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
                   placeholder="••••••••" />
               </div>
+              <p className="text-xs text-slate-400 mt-1">Минимум 8 символов, заглавные и строчные буквы, цифры</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Повторите пароль</label>

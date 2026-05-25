@@ -20,6 +20,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function RootRoute() {
   const { currentUser } = usePharmacy();
+  console.log("RootRoute currentUser:", currentUser);
   if (!currentUser) return <GuestHome />;
   if (currentUser.role === "director") return <Dashboard />;
   if (currentUser.role === "supplier") return <SupplierAssortment />;

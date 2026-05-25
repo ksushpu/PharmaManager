@@ -10,21 +10,19 @@ async function request(url, options = {}) {
 
   const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
 
-  if (response.status === 401) {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('pharmaUser');
-    window.location.href = '/login';
-    return null;
-  }
-
   if (options.method === 'DELETE' && response.ok) {
     return true;
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('pharmaUser');
+      throw new Error("Неверный логин или пароль");
+    }
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Ошибка запроса');
+    throw new Error(error.detail || Object.values(error)[0]?.[0] || 'Ошибка запроса');
   }
 
   return response.json();
@@ -81,10 +79,8 @@ export const api = {
       body: JSON.stringify({ username, password }),
       headers: { 'Content-Type': 'application/json' },
     });
-    if (data) {
-      localStorage.setItem('accessToken', data.access);
-      localStorage.setItem('refreshToken', data.refresh);
-    }
+    localStorage.setItem('accessToken', data.access);
+    localStorage.setItem('refreshToken', data.refresh);
     return data;
   },
   register: (data) => request('/auth/register/', { method: 'POST', body: JSON.stringify(data) }),

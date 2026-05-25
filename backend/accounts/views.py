@@ -17,12 +17,12 @@ class RegisterView(generics.CreateAPIView):
         
         if user.role == 'supplier':
             company_name = request.data.get('company', user.username)
-            Supplier.objects.create(
+            supplier = Supplier.objects.create(
                 name=company_name,
                 contact_info=f"Телефон: {user.phone or 'не указан'}",
                 rating=3
             )
-            user.supplier = Supplier.objects.get(name=company_name)
+            user.supplier = supplier
             user.save()
         
         return Response({'user': UserSerializer(user).data}, status=status.HTTP_201_CREATED)

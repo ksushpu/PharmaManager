@@ -12,7 +12,10 @@ export function SupplierAssortment() {
   const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
 
   const supplier = suppliers.find(s => s.id === currentUser?.id);
-  if (!supplier) return <div className="p-8 text-center text-xl font-bold">Поставщик не найден</div>;
+  console.log("currentUser.id:", currentUser?.id);
+  console.log("suppliers ids:", suppliers.map(s => s.id));
+  console.log("found supplier:", supplier);
+  if (!supplier) return <div className="p-8 text-center text-xl font-bold">Загрузка данных...</div>;
 
   const filtered = supplier.products.filter(p =>
     p.productName.toLowerCase().includes(searchTerm.toLowerCase())
