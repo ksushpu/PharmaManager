@@ -8,7 +8,11 @@ export function SupplierOrders() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectingOrderId, setRejectingOrderId] = useState(null);
 
-  const supplierOrders = orders.filter(o => o.supplierId === currentUser?.id);
+  const supplierOrders = orders.filter(o => {
+    const orderSupplierId = String(o.supplierId);
+    const userId = currentUser?.id;
+    return orderSupplierId === userId || orderSupplierId === userId?.replace("s", "");
+  });
 
   const handleConfirm = (orderId) => {
     if (window.confirm("Подтвердить заказ?")) {

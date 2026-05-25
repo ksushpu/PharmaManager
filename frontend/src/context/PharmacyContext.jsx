@@ -1,43 +1,5 @@
-import { createContext, useContext, useState } from "react";
-import { isBefore, parseISO } from "date-fns";
-
-const initialProducts = [
-  { id: "1", name: "Аспирин", price: 120, dosages: ["500 мг"], quantity: 50, expirationDate: "2026-05-15" },
-  { id: "2", name: "Ибупрофен", price: 250, dosages: ["200 мг", "400 мг"], quantity: 12, expirationDate: "2025-10-10" },
-  { id: "3", name: "Парацетамол", price: 80, dosages: ["500 мг"], quantity: 100, expirationDate: "2027-01-20" },
-  { id: "4", name: "Омепразол", price: 340, dosages: ["20 мг"], quantity: 5, expirationDate: "2026-04-20" },
-];
-
-const initialSuppliers = [
-  { id: "s1", name: "ФармКомплект", products: [
-    { productId: "1", productName: "Аспирин", dosage: "500 мг", quantity: 500 },
-    { productId: "2", productName: "Ибупрофен", dosage: "200 мг", quantity: 300 },
-    { productId: "2", productName: "Ибупрофен", dosage: "400 мг", quantity: 200 },
-  ]},
-  { id: "s2", name: "Здоровье Плюс", products: [
-    { productId: "2", productName: "Ибупрофен", dosage: "400 мг", quantity: 150 },
-    { productId: "3", productName: "Парацетамол", dosage: "500 мг", quantity: 1000 },
-    { productId: "4", productName: "Омепразол", dosage: "20 мг", quantity: 50 },
-  ]},
-  { id: "s3", name: "МедикаОпт", products: [
-    { productId: "1", productName: "Аспирин", dosage: "500 мг", quantity: 100 },
-    { productId: "4", productName: "Омепразол", dosage: "20 мг", quantity: 800 },
-  ]},
-];
-
-const initialPreferences = [
-  { productId: "1", supplierId: "s1", rating: 1 },
-  { productId: "1", supplierId: "s3", rating: 2 },
-  { productId: "2", supplierId: "s1", rating: 1 },
-  { productId: "2", supplierId: "s2", rating: 2 },
-  { productId: "3", supplierId: "s2", rating: 1 },
-  { productId: "4", supplierId: "s3", rating: 1 },
-  { productId: "4", supplierId: "s2", rating: 2 },
-];
-
-const initialOrders = [
-  { id: "o1", pharmacyId: "p1", supplierId: "s1", productId: "1", productName: "Аспирин", dosage: "500 мг", quantity: 100, status: "pending", createdAt: "2026-04-25T10:00:00Z" },
-];
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
 
 const PharmacyContext = createContext(undefined);
 
@@ -47,11 +9,77 @@ export function PharmacyProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [name] = useState("Аптека Здоровье");
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [products, setProducts] = useState(initialProducts);
-  const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [preferences] = useState(initialPreferences);
-  const [orders, setOrders] = useState(initialOrders);
+  const [currentDate, setCurrentDate] = useState(() => {
+    const d = new Date();
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().split('T')[0];
+  });
+  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [preferences, setPreferences] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [pharmacyId] = useState(1);
+  const [backendAvailable, setBackendAvailable] = useState(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [productsData, suppliersData, allSupplierProducts, preferencesData, ordersData] = await Promise.all([
+        api.getProducts(pharmacyId),
+        api.getSuppliers(),
+        api.getSupplierProducts(),
+        api.getPreferences(),
+        api.getOrders(),
+      ]);
+      setProducts(productsData.map(p => ({
+        id: p.id.toString(),
+        name: p.name,
+        price: Number(p.price),
+        dosages: p.dosages ? p.dosages.map(d => typeof d === 'string' ? d : d.dosage) : [],
+        quantity: p.quantity,
+        expirationDate: p.expiry_date,
+      })));
+      setSuppliers(suppliersData.map(s => ({
+        id: "s" + s.id,
+        name: s.name,
+        rating: s.rating,
+        products: allSupplierProducts
+          .filter(sp => Number(sp.supplier) === Number(s.id))
+          .map(sp => ({
+            productId: sp.id.toString(),
+            productName: sp.product_name,
+            dosage: sp.dosage,
+            quantity: sp.supplier_quantity,
+            expiryDate: sp.expiry_date || null,
+          })),
+      })));
+      setPreferences(preferencesData.map(p => ({
+        id: p.id,
+        productId: p.product.toString(),
+        supplierId: p.supplier.toString(),
+        rating: p.rating,
+      })));
+      setOrders(ordersData.map(o => ({
+        id: o.id.toString(),
+        pharmacyId: o.pharmacy.toString(),
+        supplierId: o.supplier.toString(),
+        productId: "",
+        productName: o.product_name,
+        dosage: o.dosage,
+        quantity: o.quantity,
+        status: o.status,
+        rejectionReason: o.rejection_reason,
+        createdAt: o.created_at,
+      })));
+      setBackendAvailable(true);
+    } catch (e) {
+      console.log("Бэкенд недоступен");
+      setBackendAvailable(false);
+    }
+  }, [pharmacyId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const login = (user) => {
     setCurrentUser(user);
@@ -61,91 +89,99 @@ export function PharmacyProvider({ children }) {
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem("pharmaUser");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   };
 
-  const writeOffExpired = () => {
-    setProducts(prev => prev.map(p =>
-      isBefore(parseISO(p.expirationDate), parseISO(currentDate)) ? { ...p, quantity: 0 } : p
-    ));
+  const writeOffExpired = async () => {
+    await api.writeOffExpired(pharmacyId);
+    await loadData();
   };
 
-  const addProduct = (product) => setProducts(prev => [...prev, product]);
-  const removeProduct = (id) => setProducts(prev => prev.filter(p => p.id !== id));
+  const addProduct = async (product) => {
+    await api.createProduct({
+      pharmacy: pharmacyId,
+      name: product.name,
+      price: product.price,
+      dosages: product.dosages.map(d => ({ dosage: d })),
+      quantity: product.quantity,
+      expiry_date: product.expirationDate,
+    });
+    await loadData();
+  };
 
-  const orderProduct = (productId, supplierId, quantity, dosage) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-    const newOrder = {
-      id: Date.now().toString(),
-      pharmacyId: "p1",
-      supplierId,
-      productId,
-      productName: product.name,
+  const updateProduct = async (id, data) => {
+    await api.updateProduct(id, data);
+    await loadData();
+  };
+
+  const removeProduct = async (id) => {
+    await api.deleteProduct(id);
+    await loadData();
+  };
+
+  const orderProduct = async (productId, supplierId, quantity, dosage) => {
+    const product = products.find(p => p.id === productId) || products.find(p => p.name === productId);
+    const productName = product?.name || productId;
+    const numericSupplierId = typeof supplierId === 'string' ? parseInt(supplierId.replace("s", "")) : supplierId;
+
+    await api.createOrder({
+      pharmacy: pharmacyId,
+      supplier: numericSupplierId,
+      product_name: productName,
       dosage,
       quantity,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-    setOrders(prev => [newOrder, ...prev]);
+    });
+    await loadData();
   };
 
-  const updateOrderStatus = (orderId, status, reason) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        if (status === "confirmed") {
-          setSuppliers(prevSuppliers => prevSuppliers.map(sup => {
-            if (sup.id === o.supplierId) {
-              return { ...sup, products: sup.products.map(sp =>
-                sp.productId === o.productId && sp.dosage === o.dosage ? { ...sp, quantity: Math.max(0, sp.quantity - o.quantity) } : sp
-              )};
-            }
-            return sup;
-          }));
-          setProducts(prevProducts => prevProducts.map(p =>
-            p.id === o.productId ? { ...p, quantity: p.quantity + o.quantity } : p
-          ));
-        }
-        return { ...o, status, rejectionReason: reason };
-      }
-      return o;
-    }));
+  const updateOrderStatus = async (orderId, status, reason) => {
+    if (status === "confirmed") {
+      await api.confirmOrder(orderId);
+    } else {
+      await api.rejectOrder(orderId, reason);
+    }
+    await loadData();
   };
 
-  const addSupplierProduct = (supplierId, product) => {
-    setSuppliers(prev => prev.map(s => {
-      if (s.id === supplierId) {
-        const exists = s.products.find(p => p.productId === product.productId && p.dosage === product.dosage);
-        if (exists) return s;
-        return { ...s, products: [...s.products, product] };
-      }
-      return s;
-    }));
+  const addSupplierProduct = async (supplierId, product) => {
+    const numericSupplierId = typeof supplierId === 'string' ? parseInt(supplierId.replace("s", "")) : supplierId;
+    await api.createSupplierProduct({
+      supplier: numericSupplierId,
+      product_name: product.productName,
+      dosage: product.dosage,
+      supplier_quantity: product.quantity,
+      price: "100.00",
+      expiry_date: product.expiryDate,
+    });
+    await loadData();
   };
 
-  const updateSupplierProductQuantity = (supplierId, productId, dosage, quantity) => {
-    setSuppliers(prev => prev.map(s => {
-      if (s.id === supplierId) {
-        return { ...s, products: s.products.map(sp =>
-          sp.productId === productId && sp.dosage === dosage ? { ...sp, quantity } : sp
-        )};
-      }
-      return s;
-    }));
+  const updateSupplierProductQuantity = async (supplierId, productId, dosage, quantity) => {
+    await api.updateSupplierProduct(productId, { supplier_quantity: quantity });
+    await loadData();
   };
 
-  const removeSupplierProduct = (supplierId, productId, dosage) => {
-    setSuppliers(prev => prev.map(s => {
-      if (s.id === supplierId) {
-        return { ...s, products: s.products.filter(sp => !(sp.productId === productId && sp.dosage === dosage)) };
-      }
-      return s;
-    }));
+  const removeSupplierProduct = async (supplierId, productId, dosage) => {
+    await api.deleteSupplierProduct(productId);
+    await loadData();
   };
+
+  if (backendAvailable === false) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-center">
+          <p className="text-xl font-bold text-slate-800 mb-2">Бэкенд недоступен</p>
+          <p className="text-slate-500">Запустите сервер: python manage.py runserver</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PharmacyContext.Provider value={{
       currentUser, name, currentDate, setCurrentDate, products, suppliers, preferences, orders,
-      login, logout, writeOffExpired, addProduct, removeProduct, orderProduct,
+      login, logout, writeOffExpired, addProduct, updateProduct, removeProduct, orderProduct,
       updateOrderStatus, addSupplierProduct, updateSupplierProductQuantity, removeSupplierProduct,
     }}>
       {children}

@@ -1,20 +1,27 @@
 import { useState, useMemo } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
+import { api } from "@/lib/api";
 import { Search, Building2, Package, Hash } from "lucide-react";
 
 export function Suppliers() {
-  const { suppliers, products } = usePharmacy();
+  const { suppliers, products, orders } = usePharmacy();
   const [searchProductName, setSearchProductName] = useState("");
   const [searchDosage, setSearchDosage] = useState("");
+  const [localRatings, setLocalRatings] = useState({});
+
+  const getOrderCount = (supplierId) => {
+    const numericId = supplierId.replace("s", "");
+    return orders.filter(o => String(o.supplierId) === numericId || o.supplierId === supplierId).length;
+  };
 
   const filteredSuppliers = useMemo(() => {
     return suppliers
       .map((supplier) => {
         const supplierProductsFull = supplier.products.map((sp) => {
-          const productInfo = products.find((p) => p.id === sp.productId);
+          const productInfo = products.find((p) => p.name === sp.productName);
           return {
             ...sp,
-            productName: productInfo?.name || "Неизвестный товар",
+            productName: productInfo?.name || sp.productName || "Неизвестный товар",
           };
         });
 
@@ -30,8 +37,14 @@ export function Suppliers() {
 
         return { ...supplier, matchedProducts };
       })
-      .filter((s) => s.matchedProducts.length > 0);
-  }, [suppliers, products, searchProductName, searchDosage]);
+      .filter((s) => s.matchedProducts.length > 0)
+      .sort((a, b) => {
+        const ratingA = localRatings[a.id] || a.rating || 3;
+        const ratingB = localRatings[b.id] || b.rating || 3;
+        if (ratingA !== ratingB) return ratingA - ratingB;
+        return getOrderCount(b.id) - getOrderCount(a.id);
+      });
+  }, [suppliers, products, searchProductName, searchDosage, localRatings, orders]);
 
   return (
     <div className="space-y-6">
@@ -63,49 +76,69 @@ export function Suppliers() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSuppliers.map((supplier) => (
-          <div
-            key={supplier.id}
-            className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:border-sky-200 transition-colors"
-          >
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center">
-                <Building2 className="w-5 h-5 text-purple-600 mr-2" />
-                <h3 className="text-lg font-semibold text-slate-800">{supplier.name}</h3>
-              </div>
-              <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                {supplier.matchedProducts.length} поз.
-              </span>
-            </div>
-            <div className="max-h-64 overflow-y-auto">
-              {supplier.matchedProducts.length > 0 ? (
-                supplier.matchedProducts.map((sp, idx) => (
-                  <div
-                    key={`${sp.productId}-${sp.dosage}-${idx}`}
-                    className="px-6 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+        {filteredSuppliers.map((supplier) => {
+          const rating = localRatings[supplier.id] || supplier.rating || 3;
+          const orderCount = getOrderCount(supplier.id);
+          return (
+            <div
+              key={supplier.id}
+              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:border-sky-200 transition-colors"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-purple-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-slate-800">{supplier.name}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{orderCount} зак.</span>
+                  <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {supplier.matchedProducts.length} поз.
+                  </span>
+                  <select
+                    value={rating}
+                    onChange={async (e) => {
+                      const newRating = Number(e.target.value);
+                      setLocalRatings(prev => ({ ...prev, [supplier.id]: newRating }));
+                      await api.updateSupplier(supplier.id.replace("s", ""), { rating: newRating });
+                    }}
+                    className="text-xs border border-slate-200 rounded p-1 bg-white"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800 mb-0.5 flex items-center">
-                          <Package className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
-                          {sp.productName}
-                        </p>
-                        <p className="text-xs text-slate-500">Дозировка: {sp.dosage}</p>
+                    <option value={1}>★1</option>
+                    <option value={2}>★2</option>
+                    <option value={3}>★3</option>
+                  </select>
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {supplier.matchedProducts.length > 0 ? (
+                  supplier.matchedProducts.map((sp, idx) => (
+                    <div
+                      key={`${sp.productId}-${sp.dosage}-${idx}`}
+                      className="px-6 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 mb-0.5 flex items-center">
+                            <Package className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                            {sp.productName}
+                          </p>
+                          <p className="text-xs text-slate-500">Дозировка: {sp.dosage}</p>
+                        </div>
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-medium">
+                          В наличии: {sp.quantity}
+                        </span>
                       </div>
-                      <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-medium">
-                        В наличии: {sp.quantity}
-                      </span>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="p-6 text-sm text-slate-500 text-center">
-                  Нет товаров, удовлетворяющих поиску.
-                </p>
-              )}
+                  ))
+                ) : (
+                  <p className="p-6 text-sm text-slate-500 text-center">
+                    Нет товаров, удовлетворяющих поиску.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {filteredSuppliers.length === 0 && (
           <div className="col-span-full py-12 text-center text-slate-500">
             Ни один поставщик не найден по заданным критериям.

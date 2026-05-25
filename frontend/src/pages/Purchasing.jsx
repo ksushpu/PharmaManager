@@ -22,35 +22,38 @@ export function Purchasing() {
   }, [selectedProduct, selectedDosage]);
 
   const availableSuppliers = useMemo(() => {
-    if (!selectedProduct) return [];
+    const searchName = selectedProduct?.name || searchTerm;
+    if (!searchName || searchName.length < 2) return [];
     const result = [];
     suppliers.forEach((supplier) => {
-      const sp = supplier.products.find(
-        p => p.productId === selectedProduct.id && p.dosage === selectedDosage
-      );
-      if (sp && sp.quantity > 0) {
-        const pref = preferences.find(
-          p => p.productId === selectedProduct.id && p.supplierId === supplier.id
-        );
-        result.push({
-          supplier,
-          rating: pref ? pref.rating : 3,
-          availableQuantity: sp.quantity,
-        });
-      }
+      supplier.products.forEach(sp => {
+        if (sp.productName.toLowerCase().includes(searchName.toLowerCase()) && sp.quantity > 0) {
+          const pref = preferences.find(
+            p => p.productId === sp.productId && p.supplierId === supplier.id
+          );
+          result.push({
+            supplier,
+            productName: sp.productName,
+            dosage: sp.dosage,
+            rating: pref ? pref.rating : 3,
+            availableQuantity: sp.quantity,
+          });
+        }
+      });
     });
-    return result.sort((a, b) => a.rating - b.rating);
-  }, [selectedProduct, suppliers, preferences, selectedDosage]);
-
-  const handleOrder = (supplierId) => {
-    if (!selectedProduct || orderAmount <= 0) return;
-    const supplier = availableSuppliers.find(s => s.supplier.id === supplierId);
-    if (supplier && supplier.availableQuantity >= orderAmount) {
-      orderProduct(selectedProduct.id, supplierId, orderAmount, selectedDosage);
-      alert(`Заказано ${orderAmount} шт. у ${supplier.supplier.name}`);
-    } else {
-      alert("Недостаточно товара у поставщика");
+    if (selectedDosage) {
+      return result.filter(r => r.dosage === selectedDosage).sort((a, b) => a.rating - b.rating);
     }
+    return result.sort((a, b) => a.rating - b.rating);
+  }, [selectedProduct, searchTerm, suppliers, preferences, selectedDosage]);
+
+  const handleOrder = (supplierId, productName, dosage) => {
+    if (!orderAmount || orderAmount <= 0) return;
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+    const numericId = parseInt(supplierId.replace("s", ""));
+    orderProduct(productName, numericId, orderAmount, dosage);
+    alert(`Заказано ${orderAmount} шт. "${productName}" у ${supplier.name}`);
   };
 
   return (
@@ -75,7 +78,10 @@ export function Purchasing() {
               {filteredProducts.map((p) => (
                 <li key={p.id}>
                   <button
-                    onClick={() => setSelectedProductId(p.id)}
+                    onClick={() => {
+                      setSelectedProductId(p.id);
+                      setSearchTerm("");
+                    }}
                     className={`w-full text-left px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors ${
                       selectedProductId === p.id ? "bg-sky-50 border-l-2 border-sky-500" : "border-l-2 border-transparent"
                     }`}
@@ -93,13 +99,25 @@ export function Purchasing() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden lg:col-span-2">
-          {selectedProduct ? (
-            <div className="flex flex-col h-full">
-              <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-1">{selectedProduct.name}</h3>
-                  <p className="text-sm text-slate-500">Текущий остаток: {selectedProduct.quantity} шт.</p>
-                </div>
+          <div className="flex flex-col h-full">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 mb-1">
+                  {selectedProduct ? selectedProduct.name : "Все поставщики"}
+                </h3>
+                {selectedProduct && (
+                  <>
+                    <p className="text-sm text-slate-500">Текущий остаток: {selectedProduct.quantity} шт.</p>
+                    <button 
+                      onClick={() => { setSelectedProductId(null); setSearchTerm(""); }}
+                      className="text-xs text-sky-600 hover:text-sky-800 mt-1 underline"
+                    >
+                      ← Сбросить и искать другой товар
+                    </button>
+                  </>
+                )}
+              </div>
+              {selectedProduct && (
                 <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                   <label className="block text-xs font-medium text-slate-500 mb-1">Дозировка</label>
                   <select
@@ -107,78 +125,86 @@ export function Purchasing() {
                     onChange={(e) => setSelectedDosage(e.target.value)}
                     className="text-sm border-slate-200 rounded-md"
                   >
+                    <option value="">Все</option>
                     {selectedProduct.dosages.map(d => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
                 </div>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto">
-                <h4 className="text-sm font-semibold text-slate-800 mb-4 uppercase tracking-wider">
-                  Доступные поставщики
-                </h4>
-                {availableSuppliers.length > 0 ? (
-                  <div className="space-y-4">
-                    {availableSuppliers.map((item, index) => (
-                      <div
-                        key={item.supplier.id}
-                        className="bg-white border border-slate-200 rounded-lg p-5 flex items-center justify-between shadow-sm hover:border-sky-200 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center mb-1">
-                            <h5 className="font-bold text-slate-900 mr-3">{item.supplier.name}</h5>
-                            <div className="flex items-center bg-purple-100 px-2 py-0.5 rounded text-xs font-medium text-purple-800">
-                              Рейтинг: {item.rating}
-                              {[...Array(3 - item.rating + 1)].map((_, i) => (
-                                <Star key={i} className="w-3 h-3 ml-0.5 fill-current" />
-                              ))}
-                            </div>
-                            {index === 0 && (
-                              <span className="ml-2 text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
-                                Рекомендуемый
-                              </span>
-                            )}
+              )}
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <h4 className="text-sm font-semibold text-slate-800 mb-4 uppercase tracking-wider">
+                Доступные поставщики
+              </h4>
+              {availableSuppliers.length > 0 ? (
+                <div className="space-y-4">
+                  {availableSuppliers.map((item, index) => (
+                    <div
+                      key={`${item.supplier.id}-${item.productName}-${item.dosage}`}
+                      className="bg-white border border-slate-200 rounded-lg p-5 flex items-center justify-between shadow-sm hover:border-sky-200 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center mb-1">
+                          <h5 className="font-bold text-slate-900 mr-3">{item.supplier.name}</h5>
+                          <div className="flex items-center bg-purple-100 px-2 py-0.5 rounded text-xs font-medium text-purple-800">
+                            Рейтинг: {item.rating}
+                            {[...Array(3 - item.rating + 1)].map((_, i) => (
+                              <Star key={i} className="w-3 h-3 ml-0.5 fill-current" />
+                            ))}
                           </div>
-                          <p className="text-sm text-slate-500">
-                            В наличии: {item.availableQuantity} шт.
-                          </p>
+                          {index === 0 && (
+                            <span className="ml-2 text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
+                              Рекомендуемый
+                            </span>
+                          )}
                         </div>
-                        <div className="flex flex-col items-end gap-2 ml-4">
-                          <div className="flex items-center border rounded-md overflow-hidden bg-white">
-                            <input
-                              type="number" min="1" max={item.availableQuantity}
-                              value={orderAmount}
-                              onChange={(e) => setOrderAmount(parseInt(e.target.value) || 0)}
-                              className="w-16 px-2 py-1 text-sm border-none text-center"
-                            />
-                            <span className="px-2 text-xs text-slate-500 bg-slate-50 border-l py-1">шт.</span>
-                          </div>
-                          <button
-                            onClick={() => handleOrder(item.supplier.id)}
-                            disabled={orderAmount > item.availableQuantity || orderAmount <= 0}
-                            className="flex items-center bg-sky-500 text-white hover:bg-sky-600 disabled:bg-slate-300 disabled:cursor-not-allowed px-4 py-2 rounded-lg font-medium text-sm"
-                          >
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            Заказать
-                          </button>
-                        </div>
+                        <p className="text-sm text-slate-600">
+                          {item.productName} — {item.dosage}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          В наличии: {item.availableQuantity} шт.
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-8 text-center">
-                    <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-600 font-medium">Нет доступных предложений</p>
-                  </div>
-                )}
-              </div>
+                      <div className="flex flex-col items-end gap-2 ml-4">
+                        <div className="flex items-center border rounded-md overflow-hidden bg-white">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            min="1" max={item.availableQuantity}
+                            value={orderAmount}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setOrderAmount(val === "" ? 0 : parseInt(val));
+                            }}
+                            className="w-16 px-2 py-1 text-sm border-none text-center"
+                          />
+                          <span className="px-2 text-xs text-slate-500 bg-slate-50 border-l py-1">шт.</span>
+                        </div>
+                        <button
+                          onClick={() => handleOrder(item.supplier.id, item.productName, item.dosage)}
+                          disabled={orderAmount > item.availableQuantity || orderAmount <= 0}
+                          className="flex items-center bg-sky-500 text-white hover:bg-sky-600 disabled:bg-slate-300 disabled:cursor-not-allowed px-4 py-2 rounded-lg font-medium text-sm"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Заказать
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-8 text-center">
+                  <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600 font-medium">
+                    {searchTerm ? "Нет доступных предложений" : "Введите название товара для поиска"}
+                  </p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500">
-              <ShoppingCart className="w-16 h-16 text-slate-200 mb-4" />
-              <p className="text-lg font-medium text-slate-700">Выберите товар для закупки</p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

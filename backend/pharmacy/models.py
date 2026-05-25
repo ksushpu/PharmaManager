@@ -35,4 +35,4 @@ class Product(models.Model):
 
     def is_expired(self):
         from datetime import date
-        return self.expiry_date < self.pharmacy.current_date
+        return self.expiry_date <= self.pharmacy.current_date

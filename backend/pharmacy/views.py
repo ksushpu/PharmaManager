@@ -2,15 +2,18 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.db import models
 from .models import Pharmacy, Product
 from .serializers import PharmacySerializer, ProductSerializer
 
 class PharmacyViewSet(viewsets.ModelViewSet):
+    permission_classes = [AllowAny]
     queryset = Pharmacy.objects.all()
     serializer_class = PharmacySerializer
 
 class ProductViewSet(viewsets.ModelViewSet):
+    permission_classes = [AllowAny]
     serializer_class = ProductSerializer
 
     def get_queryset(self):

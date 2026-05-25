@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
 import { Search, Plus, Trash2, Boxes } from "lucide-react";
-import { isBefore, parseISO } from "date-fns";
 
 export function SupplierAssortment() {
   const { currentUser, suppliers, currentDate, addSupplierProduct, updateSupplierProductQuantity, removeSupplierProduct } = usePharmacy();
@@ -9,6 +8,8 @@ export function SupplierAssortment() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState(0);
+
+  const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
 
   const supplier = suppliers.find(s => s.id === currentUser?.id);
   if (!supplier) return <div className="p-8 text-center text-xl font-bold">Поставщик не найден</div>;
@@ -28,7 +29,7 @@ export function SupplierAssortment() {
     addSupplierProduct(supplier.id, {
       productId: `new-${Date.now()}`,
       productName: formData.get("productName"),
-      dosage: formData.get("dosage"),
+      dosage: formData.get("dosage") + " мг",
       quantity: Number(formData.get("quantity")),
       expiryDate: formData.get("expiryDate"),
     });
@@ -63,7 +64,7 @@ export function SupplierAssortment() {
             <thead className="bg-slate-50 sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Наименование</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Фасовка</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Дозировка</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Срок годности</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">В наличии</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Действия</th>
@@ -71,7 +72,7 @@ export function SupplierAssortment() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {filtered.map((product) => {
-                const isExpired = product.expiryDate && isBefore(parseISO(product.expiryDate), parseISO(currentDate));
+                const isExpired = product.expiryDate && product.expiryDate <= currentDate;
                 return (
                   <tr key={`${product.productId}-${product.dosage}`} className={`hover:bg-slate-50 ${isExpired ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">
@@ -87,15 +88,22 @@ export function SupplierAssortment() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={isExpired ? "text-red-600 font-medium" : "text-slate-600"}>
-                        {product.expiryDate || "—"}
+                        {formatDate(product.expiryDate)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingProductId === `${product.productId}-${product.dosage}` ? (
                         <div className="flex items-center space-x-2">
-                          <input type="number" min="0" value={editingQuantity}
-                            onChange={(e) => setEditingQuantity(Number(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border rounded" autoFocus />
+                          <input
+                            type="text" inputMode="numeric" pattern="[0-9]*"
+                            value={editingQuantity}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setEditingQuantity(val === "" ? 0 : parseInt(val));
+                            }}
+                            className="w-20 px-2 py-1 text-sm border rounded" autoFocus
+                          />
                           <button onClick={() => handleSaveEdit(product.productId, product.dosage)}
                             className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded hover:bg-sky-200 font-medium">Сохранить</button>
                           <button onClick={() => setEditingProductId(null)}
@@ -138,8 +146,11 @@ export function SupplierAssortment() {
                 <input required name="productName" type="text" placeholder="Введите название" className="w-full rounded-md border p-2" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Фасовка</label>
-                <input required name="dosage" type="text" placeholder="500 мг" className="w-full rounded-md border p-2" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Дозировка (мг)</label>
+                <div className="flex items-center gap-2">
+                  <input required name="dosage" type="number" min="1" placeholder="500" className="w-full rounded-md border p-2" />
+                  <span className="text-sm text-slate-500">мг</span>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Количество</label>

@@ -1,5 +1,4 @@
 import { usePharmacy } from "@/context/PharmacyContext";
-import { isBefore, parseISO } from "date-fns";
 import { AlertCircle, Package, DollarSign, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 
@@ -8,8 +7,10 @@ export function Dashboard() {
 
   const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
   const totalItems = products.reduce((sum, p) => sum + p.quantity, 0);
-  const expiredProducts = products.filter(p => isBefore(parseISO(p.expirationDate), parseISO(currentDate)) && p.quantity > 0);
-  const lowStockProducts = products.filter(p => p.quantity > 0 && p.quantity < 20);
+  const expiredProducts = products.filter(p => p.expirationDate <= currentDate && p.quantity > 0);
+  const lowStockProducts = products.filter(p => p.quantity > 0 && p.quantity < 10);
+
+  const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
 
   return (
     <div className="space-y-6">
@@ -103,7 +104,7 @@ export function Dashboard() {
                 <li key={p.id} className="flex justify-between items-center px-6 py-4">
                   <div>
                     <p className="font-medium text-slate-800">{p.name}</p>
-                    <p className="text-xs text-red-500">Срок: {p.expirationDate}</p>
+                    <p className="text-xs text-red-500">Срок: {formatDate(p.expirationDate)}</p>
                   </div>
                   <span className="text-sm font-medium text-slate-600">{p.quantity} шт.</span>
                 </li>

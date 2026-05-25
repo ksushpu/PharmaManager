@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from datetime import date
 from .models import Order
 from .serializers import OrderSerializer
 from suppliers.models import SupplierProduct
@@ -40,6 +41,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         if product:
             product.quantity += order.quantity
             product.save()
+        else:
+            Product.objects.create(
+                pharmacy=order.pharmacy,
+                name=order.product_name,
+                price=100,
+                dosages=[{"dosage": order.dosage}],
+                quantity=order.quantity,
+                expiry_date=sp.expiry_date if sp and sp.expiry_date else date.today(),
+            )
 
         return Response(OrderSerializer(order).data)
 

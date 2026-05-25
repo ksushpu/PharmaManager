@@ -1,20 +1,24 @@
 import { useState } from "react";
 import { usePharmacy } from "@/context/PharmacyContext";
-import { isBefore, parseISO } from "date-fns";
 import { Search, AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 export function Inventory() {
-  const { products, currentDate, writeOffExpired, removeProduct, addProduct } = usePharmacy();
+  const { products, currentDate, writeOffExpired, removeProduct, addProduct, updateProduct } = usePharmacy();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(null);
+  const [editingQty, setEditingQty] = useState(null);
+  const [editValue, setEditValue] = useState(0);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const expiredCount = products.filter(p =>
-    p.quantity > 0 && isBefore(parseISO(p.expirationDate), parseISO(currentDate))
+    p.quantity > 0 && p.expirationDate <= currentDate
   ).length;
+
+  const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,13 +34,23 @@ export function Inventory() {
     setIsAddModalOpen(false);
   };
 
+  const handleWriteOff = () => {
+    writeOffExpired().catch(e => alert("Ошибка: " + e.message));
+  };
+
+  const handleSaveEdit = (id, field, value) => {
+    updateProduct(id, { [field]: value });
+    setEditingPrice(null);
+    setEditingQty(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-slate-800">Инвентарь</h2>
         <div className="flex items-center gap-3">
           {expiredCount > 0 && (
-            <button onClick={writeOffExpired} className="flex items-center bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg font-medium text-sm">
+            <button onClick={handleWriteOff} className="flex items-center bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg font-medium text-sm">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Списать просрочку ({expiredCount})
             </button>
@@ -76,7 +90,7 @@ export function Inventory() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {filtered.map((product) => {
-                const isExpired = isBefore(parseISO(product.expirationDate), parseISO(currentDate)) && product.quantity > 0;
+                const isExpired = product.expirationDate <= currentDate && product.quantity > 0;
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 ${isExpired ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -94,20 +108,70 @@ export function Inventory() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{product.price} ₽</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {editingPrice === product.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text" inputMode="numeric" pattern="[0-9]*"
+                            value={editValue}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setEditValue(val === "" ? 0 : parseInt(val));
+                            }}
+                            className="w-20 px-2 py-1 text-sm border rounded" autoFocus
+                          />
+                          <button onClick={() => handleSaveEdit(product.id, "price", editValue)}
+                            className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded font-medium">OK</button>
+                          <button onClick={() => setEditingPrice(null)}
+                            className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">×</button>
+                        </div>
+                      ) : (
+                        <span
+                          onClick={() => { setEditingPrice(product.id); setEditValue(product.price); }}
+                          className="cursor-pointer text-slate-600 hover:text-sky-600 underline"
+                        >
+                          {product.price} ₽
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 rounded-full text-sm font-medium ${product.quantity === 0 ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-800'}`}>
-                        {product.quantity} шт.
-                      </span>
+                      {editingQty === product.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text" inputMode="numeric" pattern="[0-9]*"
+                            value={editValue}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setEditValue(val === "" ? 0 : parseInt(val));
+                            }}
+                            className="w-20 px-2 py-1 text-sm border rounded" autoFocus
+                          />
+                          <button onClick={() => handleSaveEdit(product.id, "quantity", editValue)}
+                            className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded font-medium">OK</button>
+                          <button onClick={() => setEditingQty(null)}
+                            className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">×</button>
+                        </div>
+                      ) : (
+                        <span
+                          onClick={() => { setEditingQty(product.id); setEditValue(product.quantity); }}
+                          className={`cursor-pointer px-2.5 py-0.5 rounded-full text-sm font-medium hover:underline ${product.quantity === 0 ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-800'}`}
+                        >
+                          {product.quantity} шт.
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-1.5">
                         {isExpired ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                        <span className={isExpired ? "text-red-600 font-medium" : "text-slate-600"}>{product.expirationDate}</span>
+                        <span className={isExpired ? "text-red-600 font-medium" : "text-slate-600"}>
+                          {formatDate(product.expirationDate)}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button onClick={() => removeProduct(product.id)} className="text-slate-400 hover:text-red-600 transition-colors" title="Удалить">
+                      <button onClick={() => removeProduct(product.id).catch(e => alert("Ошибка: " + e.message))} className="text-slate-400 hover:text-red-600 transition-colors" title="Удалить">
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
@@ -151,7 +215,7 @@ export function Inventory() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Срок годности</label>
-                <input required name="expirationDate" type="date" className="w-full rounded-md border p-2" />
+                <input required name="expirationDate" type="date" min={new Date().toISOString().split('T')[0]} className="w-full rounded-md border p-2" />
               </div>
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border rounded-lg hover:bg-slate-50">

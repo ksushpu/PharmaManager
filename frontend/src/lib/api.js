@@ -18,6 +18,10 @@ async function request(url, options = {}) {
     return null;
   }
 
+  if (options.method === 'DELETE' && response.ok) {
+    return true;
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Ошибка запроса');
@@ -34,6 +38,7 @@ export const api = {
   //товары
   getProducts: (pharmacyId) => request(`/products/?pharmacy_id=${pharmacyId}`),
   createProduct: (data) => request('/products/', { method: 'POST', body: JSON.stringify(data) }),
+  updateProduct: (id, data) => request(`/products/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteProduct: (id) => request(`/products/${id}/`, { method: 'DELETE' }),
   writeOffExpired: (pharmacyId) => request('/products/write_off_expired/', {
     method: 'POST',
@@ -43,13 +48,19 @@ export const api = {
 
   //поставщики
   getSuppliers: () => request('/suppliers/'),
-  getSupplierProducts: (supplierId) => request(`/supplier-products/?supplier_id=${supplierId}`),
+  updateSupplier: (id, data) => request(`/suppliers/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getSupplierProducts: (supplierId) => {
+    const query = supplierId ? `?supplier_id=${supplierId}` : '';
+    return request(`/supplier-products/${query}`);
+  },
   createSupplierProduct: (data) => request('/supplier-products/', { method: 'POST', body: JSON.stringify(data) }),
   updateSupplierProduct: (id, data) => request(`/supplier-products/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteSupplierProduct: (id) => request(`/supplier-products/${id}/`, { method: 'DELETE' }),
 
   //предпочтения
   getPreferences: () => request('/preferences/'),
+  updatePreference: (id, data) => request(`/preferences/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+  createPreference: (data) => request('/preferences/', { method: 'POST', body: JSON.stringify(data) }),
 
   //заказы
   getOrders: (params = {}) => {

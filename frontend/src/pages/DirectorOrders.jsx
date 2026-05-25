@@ -30,7 +30,7 @@ export function DirectorOrders() {
   };
 
   const getSupplierName = (id) => {
-    const s = suppliers.find(s => s.id === id);
+    const s = suppliers.find(s => s.id === `s${id}` || s.id == id);
     return s ? s.name : "Неизвестный поставщик";
   };
 

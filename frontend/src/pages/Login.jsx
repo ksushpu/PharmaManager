@@ -38,7 +38,7 @@ const handleLogin = (e) => {
                 activeTab === "director" ? "bg-white text-sky-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <Stethoscope className="w-4 h-4 mr-2" />Аптека
+              <Stethoscope className="w-4 h-4 mr-2" />Директор аптеки
             </button>
             <button
               onClick={() => setActiveTab("supplier")}
