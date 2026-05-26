@@ -52,6 +52,13 @@ export function PharmacyProvider({ children }) {
             expiryDate: sp.expiry_date || null,
           })),
       })));
+      // Сохраняем имена поставщиков в localStorage
+      suppliersData.forEach(s => {
+        const key = `supplier_supplier${s.id}_name`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, s.name);
+        }
+      });
       setPreferences(preferencesData.map(p => ({
         id: p.id,
         productId: p.product.toString(),

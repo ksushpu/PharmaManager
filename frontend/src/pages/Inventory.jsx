@@ -49,12 +49,18 @@ export function Inventory() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-slate-800">Инвентарь</h2>
         <div className="flex items-center gap-3">
-          {expiredCount > 0 && (
-            <button onClick={handleWriteOff} className="flex items-center bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg font-medium text-sm">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Списать просрочку ({expiredCount})
-            </button>
-          )}
+          <button 
+            onClick={handleWriteOff} 
+            disabled={expiredCount === 0}
+            className={`flex items-center px-4 py-2 rounded-lg font-medium text-sm ${
+              expiredCount > 0 
+                ? "bg-red-100 text-red-700 hover:bg-red-200" 
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Списать просрочку ({expiredCount})
+          </button>
           <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-sky-500 text-white hover:bg-sky-600 px-4 py-2 rounded-lg font-medium text-sm shadow-sm">
             <Plus className="w-4 h-4 mr-2" />
             Добавить товар
