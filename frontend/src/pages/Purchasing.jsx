@@ -3,7 +3,7 @@ import { usePharmacy } from "@/context/PharmacyContext";
 import { Search, ShoppingCart, ArrowRight, Star, AlertCircle } from "lucide-react";
 
 export function Purchasing() {
-  const { products, suppliers, preferences, orderProduct } = usePharmacy();
+  const { products, suppliers, orders, orderProduct } = usePharmacy();
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [orderAmount, setOrderAmount] = useState(10);
@@ -21,6 +21,11 @@ export function Purchasing() {
     }
   }, [selectedProduct, selectedDosage]);
 
+  const getOrderCount = (supplierId) => {
+    const numericId = supplierId.replace("s", "");
+    return orders.filter(o => String(o.supplierId) === numericId || o.supplierId === supplierId).length;
+  };
+
   const availableSuppliers = useMemo(() => {
     const searchName = selectedProduct?.name || searchTerm;
     if (!searchName || searchName.length < 2) return [];
@@ -28,24 +33,23 @@ export function Purchasing() {
     suppliers.forEach((supplier) => {
       supplier.products.forEach(sp => {
         if (sp.productName.toLowerCase().includes(searchName.toLowerCase()) && sp.quantity > 0) {
-          const pref = preferences.find(
-            p => p.productId === sp.productId && p.supplierId === supplier.id
-          );
           result.push({
             supplier,
             productName: sp.productName,
             dosage: sp.dosage,
-            rating: pref ? pref.rating : 3,
+            rating: supplier.rating || 3,
             availableQuantity: sp.quantity,
           });
         }
       });
     });
     if (selectedDosage) {
-      return result.filter(r => r.dosage === selectedDosage).sort((a, b) => a.rating - b.rating);
+      return result
+        .filter(r => r.dosage === selectedDosage)
+        .sort((a, b) => a.rating - b.rating || getOrderCount(b.supplier.id) - getOrderCount(a.supplier.id));
     }
-    return result.sort((a, b) => a.rating - b.rating);
-  }, [selectedProduct, searchTerm, suppliers, preferences, selectedDosage]);
+    return result.sort((a, b) => a.rating - b.rating || getOrderCount(b.supplier.id) - getOrderCount(a.supplier.id));
+  }, [selectedProduct, searchTerm, suppliers, selectedDosage, orders]);
 
   const handleOrder = (supplierId, productName, dosage) => {
     if (!orderAmount || orderAmount <= 0) return;
@@ -148,10 +152,7 @@ export function Purchasing() {
                         <div className="flex items-center mb-1">
                           <h5 className="font-bold text-slate-900 mr-3">{item.supplier.name}</h5>
                           <div className="flex items-center bg-purple-100 px-2 py-0.5 rounded text-xs font-medium text-purple-800">
-                            Рейтинг: {item.rating}
-                            {[...Array(3 - item.rating + 1)].map((_, i) => (
-                              <Star key={i} className="w-3 h-3 ml-0.5 fill-current" />
-                            ))}
+                            {item.rating} <Star className="w-3 h-3 ml-0.5 fill-current" />
                           </div>
                           {index === 0 && (
                             <span className="ml-2 text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
