@@ -38,9 +38,9 @@ export const api = {
   createProduct: (data) => request('/products/', { method: 'POST', body: JSON.stringify(data) }),
   updateProduct: (id, data) => request(`/products/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteProduct: (id) => request(`/products/${id}/`, { method: 'DELETE' }),
-  writeOffExpired: (pharmacyId) => request('/products/write_off_expired/', {
+  writeOffExpired: (pharmacyId, currentDate) => request('/products/write_off_expired/', {
     method: 'POST',
-    body: JSON.stringify({ pharmacy_id: pharmacyId }),
+    body: JSON.stringify({ pharmacy_id: pharmacyId, current_date: currentDate }),
   }),
   getTotalValue: (pharmacyId) => request(`/products/total_value/?pharmacy_id=${pharmacyId}`),
 

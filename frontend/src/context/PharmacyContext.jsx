@@ -52,7 +52,6 @@ export function PharmacyProvider({ children }) {
             expiryDate: sp.expiry_date || null,
           })),
       })));
-      // Сохраняем имена поставщиков в localStorage
       suppliersData.forEach(s => {
         const key = `supplier_supplier${s.id}_name`;
         if (!localStorage.getItem(key)) {
@@ -101,7 +100,7 @@ export function PharmacyProvider({ children }) {
   };
 
   const writeOffExpired = async () => {
-    await api.writeOffExpired(pharmacyId);
+    await api.writeOffExpired(pharmacyId, currentDate);
     await loadData();
   };
 

@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.db import models
+from datetime import date
 from .models import Pharmacy, Product
 from .serializers import PharmacySerializer, ProductSerializer
 
@@ -28,7 +29,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         pharmacy_id = request.data.get('pharmacy_id')
         if not pharmacy_id:
             return Response({'error': 'Укажите pharmacy_id'}, status=400)
+        
         pharmacy = Pharmacy.objects.get(id=pharmacy_id)
+        
+        # Если фронтенд прислал свою дату — используем её
+        current_date = request.data.get('current_date')
+        if current_date:
+            pharmacy.current_date = current_date
+            pharmacy.save()
+        
         expired = Product.objects.filter(
             pharmacy_id=pharmacy_id,
             expiry_date__lt=pharmacy.current_date,

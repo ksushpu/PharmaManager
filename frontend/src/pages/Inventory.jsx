@@ -10,12 +10,15 @@ export function Inventory() {
   const [editingQty, setEditingQty] = useState(null);
   const [editValue, setEditValue] = useState(0);
 
+  const today = new Date().toISOString().split('T')[0];
+  const isFutureDate = currentDate > today;
+
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const expiredCount = products.filter(p =>
-    p.quantity > 0 && p.expirationDate <= currentDate
+  const expiredCount = isFutureDate ? 0 : products.filter(p =>
+    p.quantity > 0 && p.expirationDate <= today
   ).length;
 
   const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
@@ -96,13 +99,13 @@ export function Inventory() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
               {filtered.map((product) => {
-                const isExpired = product.expirationDate <= currentDate && product.quantity > 0;
+                const isExpiredForDisplay = product.expirationDate <= currentDate && product.quantity > 0;
                 return (
-                  <tr key={product.id} className={`hover:bg-slate-50 ${isExpired ? 'bg-red-50/30' : ''}`}>
+                  <tr key={product.id} className={`hover:bg-slate-50 ${isExpiredForDisplay ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <span className="text-sm font-medium text-slate-900">{product.name}</span>
-                        {isExpired && (
+                        {isExpiredForDisplay && (
                           <span className="ml-2 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md">Просрочен</span>
                         )}
                       </div>
@@ -170,8 +173,8 @@ export function Inventory() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-1.5">
-                        {isExpired ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                        <span className={isExpired ? "text-red-600 font-medium" : "text-slate-600"}>
+                        {isExpiredForDisplay ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                        <span className={isExpiredForDisplay ? "text-red-600 font-medium" : "text-slate-600"}>
                           {formatDate(product.expirationDate)}
                         </span>
                       </div>

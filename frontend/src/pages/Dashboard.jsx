@@ -5,12 +5,20 @@ import { Link } from "react-router";
 export function Dashboard() {
   const { products, currentDate, writeOffExpired } = usePharmacy();
 
+  const today = new Date().toISOString().split('T')[0];
+  const isFutureDate = currentDate > today;
+
   const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
   const totalItems = products.reduce((sum, p) => sum + p.quantity, 0);
   const expiredProducts = products.filter(p => p.expirationDate <= currentDate && p.quantity > 0);
+  const expiredCount = isFutureDate ? 0 : products.filter(p => p.quantity > 0 && p.expirationDate <= today).length;
   const lowStockProducts = products.filter(p => p.quantity > 0 && p.quantity < 10);
 
   const formatDate = (date) => date ? date.split('-').reverse().join('.') : '—';
+
+  const handleWriteOff = () => {
+    writeOffExpired().catch(e => alert("Ошибка: " + e.message));
+  };
 
   return (
     <div className="space-y-6">
@@ -51,14 +59,20 @@ export function Dashboard() {
               <AlertCircle className="w-6 h-6" />
             </div>
           </div>
-          {expiredProducts.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-red-100 flex justify-between items-center">
-              <span className="text-xs font-medium text-red-700">Требуется списание</span>
-              <button onClick={writeOffExpired} className="text-xs font-semibold text-red-700 hover:text-red-800 bg-red-100 px-3 py-1 rounded-md">
-                Списать всё
-              </button>
-            </div>
-          )}
+          <div className="mt-4 pt-3 border-t border-red-100 flex justify-between items-center">
+            <span className="text-xs font-medium text-red-700">Требуется списание</span>
+            <button 
+              onClick={handleWriteOff} 
+              disabled={expiredCount === 0}
+              className={`text-xs font-semibold px-3 py-1 rounded-md ${
+                expiredCount > 0 
+                  ? "text-red-700 bg-red-100 hover:bg-red-200" 
+                  : "text-slate-400 bg-slate-100 cursor-not-allowed"
+              }`}
+            >
+              Списать всё
+            </button>
+          </div>
         </div>
       </div>
 
